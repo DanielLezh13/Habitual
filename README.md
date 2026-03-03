@@ -1,6 +1,6 @@
 # Habitual (iOS)
 
-Habitual is a SwiftUI iOS app for tracking daily habits, nicotine use, and sleep with quick logging and an insights dashboard.
+Habitual is a SwiftUI habit-tracking app that combines quick, precise habit logging, sleep tracking, and Apple Health-style interactive insights charts in a mobile-first experience.
 
 ## Live Demo
 

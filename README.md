@@ -5,6 +5,7 @@ Habitual is a SwiftUI habit-tracking app that combines quick, precise habit logg
 ## Live Demo
 
 - [Appetize Demo (iPhone 17 Pro Max)](https://appetize.io/app/b_jcw3saojl7d2a4onr7ed4gursy?device=iphone17promax&osVersion=26.0&toolbar=true)
+- [LinkedIn Media Redirect](https://daniellezh13.github.io/Habitual/linkedin-demo/)
 
 ## Demo Videos
 

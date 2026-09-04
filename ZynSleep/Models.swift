@@ -174,6 +174,7 @@ enum LastAction: Codable, Equatable {
 struct ZynSleepState: Codable, Equatable {
 	var sleepEvents: [SleepEvent]
 	var zynEvents: [ZynEvent]
+	var isSleepTrackerActive: Bool
 	var isZynTrackerActive: Bool
 	var activeCustomTrackers: [TrackerKind]
 	var habitEvents: [HabitEvent]
@@ -182,6 +183,7 @@ struct ZynSleepState: Codable, Equatable {
 	private enum CodingKeys: String, CodingKey {
 		case sleepEvents
 		case zynEvents
+		case isSleepTrackerActive
 		case isZynTrackerActive
 		case activeCustomTrackers
 		case habitEvents
@@ -191,6 +193,7 @@ struct ZynSleepState: Codable, Equatable {
 	init(
 		sleepEvents: [SleepEvent],
 		zynEvents: [ZynEvent],
+		isSleepTrackerActive: Bool = true,
 		isZynTrackerActive: Bool = false,
 		activeCustomTrackers: [TrackerKind] = [],
 		habitEvents: [HabitEvent] = [],
@@ -198,6 +201,7 @@ struct ZynSleepState: Codable, Equatable {
 	) {
 		self.sleepEvents = sleepEvents
 		self.zynEvents = zynEvents
+		self.isSleepTrackerActive = isSleepTrackerActive
 		self.isZynTrackerActive = isZynTrackerActive
 		self.activeCustomTrackers = activeCustomTrackers
 		self.habitEvents = habitEvents
@@ -208,6 +212,7 @@ struct ZynSleepState: Codable, Equatable {
 		let container = try decoder.container(keyedBy: CodingKeys.self)
 		sleepEvents = try container.decodeIfPresent([SleepEvent].self, forKey: .sleepEvents) ?? []
 		zynEvents = try container.decodeIfPresent([ZynEvent].self, forKey: .zynEvents) ?? []
+		isSleepTrackerActive = try container.decodeIfPresent(Bool.self, forKey: .isSleepTrackerActive) ?? true
 		isZynTrackerActive = try container.decodeIfPresent(Bool.self, forKey: .isZynTrackerActive) ?? false
 		activeCustomTrackers = try container.decodeIfPresent([TrackerKind].self, forKey: .activeCustomTrackers) ?? []
 		habitEvents = try container.decodeIfPresent([HabitEvent].self, forKey: .habitEvents) ?? []
@@ -218,11 +223,12 @@ struct ZynSleepState: Codable, Equatable {
 		var container = encoder.container(keyedBy: CodingKeys.self)
 		try container.encode(sleepEvents, forKey: .sleepEvents)
 		try container.encode(zynEvents, forKey: .zynEvents)
+		try container.encode(isSleepTrackerActive, forKey: .isSleepTrackerActive)
 		try container.encode(isZynTrackerActive, forKey: .isZynTrackerActive)
 		try container.encode(activeCustomTrackers, forKey: .activeCustomTrackers)
 		try container.encode(habitEvents, forKey: .habitEvents)
 		try container.encodeIfPresent(lastAction, forKey: .lastAction)
 	}
 
-	static let empty = ZynSleepState(sleepEvents: [], zynEvents: [], isZynTrackerActive: false, activeCustomTrackers: [], habitEvents: [], lastAction: nil)
+	static let empty = ZynSleepState(sleepEvents: [], zynEvents: [], isSleepTrackerActive: true, isZynTrackerActive: false, activeCustomTrackers: [], habitEvents: [], lastAction: nil)
 }

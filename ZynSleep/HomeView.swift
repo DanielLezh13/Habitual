@@ -63,7 +63,8 @@ struct HomeView: View {
 					},
 					onDeleteHabit: { habitId in
 						store.deleteHabitEvent(habitId)
-					}
+					},
+					onClearHistory: store.clearHistory
 				)
 			}
 		}
@@ -96,10 +97,13 @@ struct HomeView: View {
 		}
 		.sheet(isPresented: $showingManageTrackersSheet) {
 			ManageTrackersSheet(
+				isSleepTrackerActive: store.isSleepTrackerActive,
 				isZynTrackerActive: store.isZynTrackerActive,
 				activeTrackers: store.activeCustomTrackers,
 				orderedActivePageIDs: orderedAddablePages.map(\.id),
 				maxActiveTrackers: store.maxAddableTrackerPages,
+				showSleep: { store.setSleepTrackerActive(true) },
+				hideSleep: { store.setSleepTrackerActive(false) },
 				canActivateZyn: store.canActivateZynTrackerPage,
 				activateZyn: { activateZynTrackerPage() },
 				deactivateZyn: { deactivateZynTrackerPage() },
@@ -125,11 +129,14 @@ struct HomeView: View {
 		}
 		.onAppear {
 			syncAddablePageOrder()
-			ensureSelectedPageIsValid(preferred: .sleep)
+			selectInitialPage()
 		}
 		.onChange(of: store.activeCustomTrackers) { _ in
 			syncAddablePageOrder()
 			ensureSelectedPageIsValid(preferred: .sleep)
+		}
+		.onChange(of: store.isSleepTrackerActive) { _ in
+			ensureSelectedPageIsValid(preferred: .insights)
 		}
 		.onChange(of: store.isZynTrackerActive) { _ in
 			syncAddablePageOrder()
@@ -179,7 +186,10 @@ private extension HomeView {
 			pages.append(.add)
 		}
 		pages.append(contentsOf: addablePages)
-		pages.append(contentsOf: [.sleep, .insights])
+		if store.isSleepTrackerActive {
+			pages.append(.sleep)
+		}
+		pages.append(.insights)
 		return pages
 	}
 
@@ -432,6 +442,16 @@ private extension HomeView {
 			selectedPageID = preferred.id
 		} else if let firstPage = pages.first {
 			selectedPageID = firstPage.id
+		}
+	}
+
+	func selectInitialPage() {
+		if let activeTrackerPage = orderedAddablePages.first {
+			selectedPageID = activeTrackerPage.id
+		} else if store.isSleepTrackerActive {
+			selectedPageID = HomePagerPage.sleep.id
+		} else {
+			selectedPageID = HomePagerPage.insights.id
 		}
 	}
 
@@ -2485,10 +2505,13 @@ private struct SwipeToDeleteLogRow: View {
 
 private struct ManageTrackersSheet: View {
 	@Environment(\.dismiss) private var dismiss
+	let isSleepTrackerActive: Bool
 	let isZynTrackerActive: Bool
 	let activeTrackers: [TrackerKind]
 	let orderedActivePageIDs: [String]
 	let maxActiveTrackers: Int
+	let showSleep: () -> Void
+	let hideSleep: () -> Void
 	let canActivateZyn: () -> Bool
 	let activateZyn: () -> Void
 	let deactivateZyn: () -> Void
@@ -2563,6 +2586,11 @@ private struct ManageTrackersSheet: View {
 	var body: some View {
 		NavigationStack {
 			List {
+				Section("Built-in") {
+					sleepRow
+						.padding(.vertical, 4)
+				}
+
 				Section {
 					HStack {
 						Text("Active")
@@ -2614,6 +2642,38 @@ private struct ManageTrackersSheet: View {
 		.preferredColorScheme(.dark)
 		.presentationDetents([.fraction(0.68)])
 		.presentationDragIndicator(.visible)
+	}
+
+	private var sleepRow: some View {
+		HStack(spacing: 12) {
+			Image(systemName: "bed.double.fill")
+				.font(.system(size: 18, weight: .semibold))
+				.foregroundStyle(Color.white.opacity(0.62))
+				.frame(width: 20, height: 20)
+
+			Text("Sleep")
+				.font(.system(size: 16, weight: .semibold))
+				.foregroundStyle(.white)
+
+			Spacer()
+
+			Button(isSleepTrackerActive ? "Hide" : "Show") {
+				if isSleepTrackerActive {
+					hideSleep()
+				} else {
+					showSleep()
+				}
+			}
+			.font(.system(size: 13, weight: .semibold))
+			.foregroundStyle(.white)
+			.padding(.horizontal, 14)
+			.padding(.vertical, 6)
+			.background(
+				Capsule()
+					.fill(isSleepTrackerActive ? Color.red.opacity(0.68) : Color(red: 0.26, green: 0.51, blue: 0.86).opacity(0.88))
+			)
+			.buttonStyle(.plain)
+		}
 	}
 
 	private var zynRow: some View {
@@ -3038,12 +3098,14 @@ private struct InsightsFullHistorySheet: View {
 	let onDeleteSleep: (UUID) -> Void
 	let onDeleteZyn: (UUID) -> Void
 	let onDeleteHabit: (UUID) -> Void
+	let onClearHistory: () -> Void
 
 	private var calendar: Calendar { Calendar.current }
 	@State private var revealedDeleteID: String?
 	@State private var displayedEntries: [InsightsHistoryEntry] = []
 	@State private var removingEntryIDs: Set<String> = []
 	@State private var pendingDeleteEntryIDs: Set<String> = []
+	@State private var showingClearConfirmation: Bool = false
 
 	var body: some View {
 		List {
@@ -3081,6 +3143,22 @@ private struct InsightsFullHistorySheet: View {
 		)
 		.navigationTitle("Full History")
 		.navigationBarTitleDisplayMode(.inline)
+		.toolbar {
+			ToolbarItem(placement: .topBarTrailing) {
+				Button("Clear", role: .destructive) {
+					showingClearConfirmation = true
+				}
+				.disabled(combinedEntries.isEmpty)
+			}
+		}
+		.alert("Clear all history?", isPresented: $showingClearConfirmation) {
+			Button("Cancel", role: .cancel) {}
+			Button("Clear History", role: .destructive) {
+				onClearHistory()
+			}
+		} message: {
+			Text("This permanently deletes every sleep and tracker log. Your tracker setup will stay the same.")
+		}
 		.preferredColorScheme(.dark)
 		.presentationDetents([.large])
 		.presentationDragIndicator(.visible)

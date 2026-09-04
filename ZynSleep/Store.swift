@@ -10,6 +10,7 @@ enum AddSleepLogError: Error {
 final class ZynSleepStore: ObservableObject {
 	@Published private(set) var sleepEvents: [SleepEvent] = []
 	@Published private(set) var zynEvents: [ZynEvent] = []
+	@Published private(set) var isSleepTrackerActive: Bool = true
 	@Published private(set) var isZynTrackerActive: Bool = false
 	@Published private(set) var activeCustomTrackers: [TrackerKind] = []
 	@Published private(set) var habitEvents: [HabitEvent] = []
@@ -56,6 +57,12 @@ final class ZynSleepStore: ObservableObject {
 			lastAction = .startedSleep(sleepId: event.id)
 		}
 		normalize()
+		save()
+	}
+
+	func setSleepTrackerActive(_ isActive: Bool) {
+		guard isSleepTrackerActive != isActive else { return }
+		isSleepTrackerActive = isActive
 		save()
 	}
 
@@ -190,6 +197,14 @@ final class ZynSleepStore: ObservableObject {
 		save()
 	}
 
+	func clearHistory() {
+		sleepEvents.removeAll()
+		zynEvents.removeAll()
+		habitEvents.removeAll()
+		lastAction = nil
+		save()
+	}
+
 	func addSleepLog(start: Date, end: Date) throws {
 		guard end > start else {
 			throw AddSleepLogError.invalidRange
@@ -289,6 +304,7 @@ final class ZynSleepStore: ObservableObject {
 				let state = try decoder.decode(ZynSleepState.self, from: data)
 				self.sleepEvents = state.sleepEvents
 				self.zynEvents = state.zynEvents
+				self.isSleepTrackerActive = state.isSleepTrackerActive
 				self.isZynTrackerActive = state.isZynTrackerActive
 				self.activeCustomTrackers = state.activeCustomTrackers
 				self.habitEvents = state.habitEvents
@@ -297,6 +313,7 @@ final class ZynSleepStore: ObservableObject {
 			} catch {
 				self.sleepEvents = []
 				self.zynEvents = []
+				self.isSleepTrackerActive = true
 				self.isZynTrackerActive = false
 				self.activeCustomTrackers = []
 				self.habitEvents = []
@@ -309,6 +326,7 @@ final class ZynSleepStore: ObservableObject {
 			let state = ZynSleepState(
 				sleepEvents: sleepEvents,
 				zynEvents: zynEvents,
+				isSleepTrackerActive: isSleepTrackerActive,
 				isZynTrackerActive: isZynTrackerActive,
 				activeCustomTrackers: activeCustomTrackers,
 				habitEvents: habitEvents,

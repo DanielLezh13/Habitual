@@ -3,6 +3,7 @@ import UIKit
 
 struct HomeView: View {
 	@EnvironmentObject private var store: ZynSleepStore
+	@Environment(\.scenePhase) private var scenePhase
 	@State private var selectedPageID: String = HomePagerPage.sleep.id
 	@State private var showingHistory: Bool = false
 	@State private var showingSleepLogList: Bool = false
@@ -141,6 +142,11 @@ struct HomeView: View {
 		.onChange(of: store.isZynTrackerActive) { _ in
 			syncAddablePageOrder()
 			ensureSelectedPageIsValid(preferred: .sleep)
+		}
+		.onChange(of: scenePhase) { newPhase in
+			guard newPhase == .active else { return }
+			syncAddablePageOrder()
+			selectInitialPage()
 		}
 		.preferredColorScheme(.dark)
 	}
